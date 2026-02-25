@@ -15,9 +15,11 @@
     "package": "node tasks/package.js"
   },
   "dependencies": {
+    "konva": "^10.2.0",
     "lucide-react": "^0.555.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-konva": "^19.2.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.11.1",
