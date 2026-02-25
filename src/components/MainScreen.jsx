@@ -46,7 +46,7 @@ function getIntersection(l1, l2) {
 }
 
 export default function MainScreen({ solvePuzzle, solved }) {
-    const { appSettings: config } = useContext(GlobalContext);
+    const { appSettings: config, Utils } = useContext(GlobalContext);
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
 
@@ -118,10 +118,12 @@ export default function MainScreen({ solvePuzzle, solved }) {
     });
 
     const [draggedIdx, setDraggedIdx] = useState(null);
+    const [laserIsSinked, setLaserIsSinked] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
+    const laserPathRef = useRef("");
 
-    const mirrorsize = 0.7; // 70% of a grid square
-    const trianglediameter = (Math.sqrt(3) / 3) * mirrorsize;
+    const mirrorsize = 0.5; // 50% of a grid square
+    const trianglediameter = (Math.sqrt(3) / 2.5) * mirrorsize;
     const squarediameter = (Math.sqrt(2 * Math.pow(mirrorsize, 2))) / 2;
 
     const computeGeometry = (width, height, objs) => {
@@ -303,6 +305,7 @@ export default function MainScreen({ solvePuzzle, solved }) {
         // Compute and Draw Rays
         let sinkHits = 0;
         let totalSinks = geoObjects.filter(o => o.type === 'sink').length;
+        let currentLaserPath = [];
 
         ctx.lineWidth = 2;
         geoObjects.filter(o => o.type === 'laser').forEach(laserSrc => {
@@ -344,6 +347,14 @@ export default function MainScreen({ solvePuzzle, solved }) {
                     ctx.lineTo(ray.x2 * scaleX, ray.y2 * scaleY);
                 } else {
                     ctx.lineTo(earliestHit.x * scaleX, earliestHit.y * scaleY);
+
+                    if (lasthit === null || lasthit.objIdx !== newLasthit.objIdx) {
+                        const hitObj = geoObjects[newLasthit.objIdx];
+                        if (hitObj && hitObj.label && hitObj.type !== 'laser' && hitObj.type !== 'sink') {
+                            currentLaserPath.push(`${hitObj.label},${Math.floor(hitObj.x)},${Math.floor(hitObj.y)}`);
+                        }
+                    }
+
                     if (newLasthit.type === 'block' || newLasthit.type === 'sink' || newLasthit.type === 'laser') {
                         terminated = true;
                         if (newLasthit.type === 'sink') {
@@ -363,16 +374,13 @@ export default function MainScreen({ solvePuzzle, solved }) {
                 bounce++;
                 lasthit = newLasthit;
             }
-
+            setLaserIsSinked(curSinked);
             ctx.strokeStyle = curSinked ? "#9ece6a" : "#ff0055";
             ctx.setLineDash([]);
             ctx.stroke();
         });
 
-        // Check Win Condition
-        if (totalSinks > 0 && sinkHits >= totalSinks && !solved) {
-            setTimeout(() => solvePuzzle(), 500);
-        }
+        laserPathRef.current = currentLaserPath;
     };
 
     useEffect(() => {
@@ -431,10 +439,21 @@ export default function MainScreen({ solvePuzzle, solved }) {
         }
     };
 
+    const sendLaserStatus = () => {
+        setTimeout(() => {
+            if (typeof solvePuzzle === 'function') {
+                if (config.solutionLength === laserPathRef.current.length && laserIsSinked) {
+                    solvePuzzle(laserPathRef.current.join(';'));
+                }
+                Utils.log(laserPathRef.current);
+            }
+        }, 50); // Retraso de 50ms para asegurar que React haya dibujado el último frame y actualizado el ref
+    };
+
     const handleMouseUp = (e) => {
         if (draggedIdx !== null) {
             const dist = Math.hypot(e.clientX - dragStart.current.x, e.clientY - dragStart.current.y);
-            if (dist < 5) { // Consider as a click instead of a drag
+            if (dist < 1) { // Consider as a click instead of a drag
                 setObjects(prev => {
                     let newObjs = [...prev];
                     const objType = newObjs[draggedIdx].type;
@@ -449,6 +468,7 @@ export default function MainScreen({ solvePuzzle, solved }) {
                 });
             }
             setDraggedIdx(null);
+            sendLaserStatus();
         }
     };
 
