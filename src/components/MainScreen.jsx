@@ -453,8 +453,7 @@ export default function MainScreen({ solvePuzzle, solved }) {
     };
 
     const handleWheel = (e) => {
-        if (solved) return;
-        e.preventDefault();
+        if (solved || draggedIdx === null) return;
         const pos = getMousePos(e);
         let minDist = 1000;
         let rotateIdx = -1;
