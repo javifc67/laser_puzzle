@@ -1,0 +1,38 @@
+{
+  "name": "laser_puzzle",
+  "version": "1.0.0",
+  "description": "A web app for creating escape room puzzles for the Escapp platform",
+  "author": "GING UPM",
+  "license": "GNU General Public License v3.0",
+  "type": "module",
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "escapp": "node tasks/update_escapp_client.js",
+    "package": "node tasks/package.js"
+  },
+  "dependencies": {
+    "lucide-react": "^0.555.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.11.1",
+    "@types/react": "^18.3.10",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "adm-zip": "^0.5.16",
+    "eslint": "^9.11.1",
+    "eslint-plugin-react": "^7.37.0",
+    "eslint-plugin-react-hooks": "^5.1.0-rc.0",
+    "eslint-plugin-react-refresh": "^0.4.12",
+    "fs-extra": "^11.3.0",
+    "globals": "^15.9.0",
+    "sass-embedded": "^1.80.3",
+    "vite": "^5.4.8",
+    "vite-plugin-static-copy": "^3.1.1"
+  }
+}
