@@ -5,6 +5,8 @@ export let ESCAPP_APP_SETTINGS = {
   cols: 6,
   rows: 6,
   allowRotate: true,
+  allowMoveObjects: true,
+  allowMoveObstacles: true,
   obstacles: [{ label: "A", x: 0, y: 2, angle: 0, allowMove: false }],
   objects: [{ label: "Aasdasd", type: "SQUARE", x: 2, y: 4, angle: 45, allowMove: true },
   { color: "yellow", label: "A", type: "SQUARE", x: 2, y: 3, angle: 90, allowMove: true },

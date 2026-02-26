@@ -91,7 +91,7 @@ export default function MainScreen({ solvePuzzle, solved }) {
                     x: toGridX(obj.x),
                     y: toGridY(obj.y),
                     a: obj.angle || 0,
-                    allowMove: obj.allowMove ?? true,
+                    allowMove: obj.allowMove ?? config.allowMoveObjects ?? true,
                     label: obj.label || '',
                     color: obj.color || null
                 });
@@ -107,7 +107,7 @@ export default function MainScreen({ solvePuzzle, solved }) {
                     a: obs.angle || 0,
                     w: 0.8,
                     h: 0.8,
-                    allowMove: obs.allowMove ?? false,
+                    allowMove: obs.allowMove ?? config.allowMoveObstacles ?? false,
                     label: obs.label || '',
                     color: obs.color || null
                 });
