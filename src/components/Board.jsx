@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 // Math utilities
 const between = (x, a, b) => x >= Math.min(a, b) && x <= Math.max(a, b);
@@ -313,7 +313,10 @@ export default function Board({
                 lasthit = newLasthit;
             }
             setLaserIsSinked(curSinked);
-            ctx.strokeStyle = curSinked ? "#9ece6a" : "#ff0055";
+
+            // Laser color
+            ctx.strokeStyle = solved ? "#9ece6a" : curSinked ? "yellow" : "#ff0055";
+
             ctx.setLineDash([]);
             ctx.stroke();
         });
@@ -337,7 +340,7 @@ export default function Board({
 
     useEffect(() => {
         draw();
-    }, [objects, draggedIdx]);
+    }, [objects, draggedIdx, solved]);
 
     return (
         <div className="laser-board-canvas" ref={containerRef}>
