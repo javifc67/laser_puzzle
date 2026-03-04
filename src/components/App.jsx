@@ -117,7 +117,25 @@ export default function App() {
     }
     _appSettings = Utils.checkUrlProtocols(_appSettings);
 
-    Utils.preloadImages([_appSettings.backgroundMessage]);
+    let imagesToPreload = [_appSettings.backgroundMessage];
+
+    const potentialImages = [
+      _appSettings.gridBackgroundImg,
+      _appSettings.laserEmitterImg,
+      _appSettings.holeImg,
+      _appSettings.triangleImg,
+      _appSettings.squareImg,
+      _appSettings.obstacleImg,
+      _appSettings.receptorHoleImg
+    ];
+
+    potentialImages.forEach(img => {
+      if (typeof img === "string" && img.trim() !== "" && img !== "NONE") {
+        imagesToPreload.push(img);
+      }
+    });
+
+    Utils.preloadImages(imagesToPreload);
     Utils.log("App settings:", _appSettings);
     return _appSettings;
   }

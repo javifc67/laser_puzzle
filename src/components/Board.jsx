@@ -1,47 +1,5 @@
-import { useEffect } from "react";
-
-// Math utilities
-const between = (x, a, b) => x >= Math.min(a, b) && x <= Math.max(a, b);
-const round = (x) => Math.round(100000000 * x) / 100000000.0;
-
-function getIntersection(l1, l2) {
-    let m1, m2, b1, b2, xi, yi, a, d;
-
-    if (round(l1.x2) === round(l1.x1)) { m1 = NaN; b1 = l1.x1; }
-    else { m1 = round((l1.y2 - l1.y1) / (l1.x2 - l1.x1)); b1 = l1.y1 - m1 * l1.x1; }
-
-    if (round(l2.x2) === round(l2.x1)) { m2 = NaN; b2 = l2.x1; }
-    else { m2 = round((l2.y2 - l2.y1) / (l2.x2 - l2.x1)); b2 = l2.y1 - m2 * l2.x1; }
-
-    if (isNaN(m1) && !isNaN(m2)) {
-        xi = b1; yi = m2 * xi + b2;
-        if (between(xi, l2.x1, l2.x2) && between(xi, l1.x1, l1.x2) && between(yi, l1.y1, l1.y2)) {
-            a = Math.atan(1 / m2);
-            d = Math.hypot(xi - l1.x1, yi - l1.y1);
-            return { x: xi, y: yi, a, d };
-        }
-        return null;
-    }
-    if (isNaN(m2) && !isNaN(m1)) {
-        xi = b2; yi = m1 * xi + b1;
-        if (between(yi, l2.y1, l2.y2) && between(xi, l1.x1, l1.x2)) {
-            a = Math.atan(m1) + Math.PI / 2;
-            d = Math.hypot(xi - l1.x1, yi - l1.y1);
-            return { x: xi, y: yi, a, d };
-        }
-        return null;
-    }
-    if (m1 === m2) return null;
-
-    xi = (b2 - b1) / (m1 - m2);
-    yi = m1 * xi + b1;
-    if (between(xi, l2.x1, l2.x2) && between(xi, l1.x1, l1.x2)) {
-        a = Math.atan((m1 - m2) / (1 + m1 * m2));
-        d = Math.hypot(xi - l1.x1, yi - l1.y1);
-        return { x: xi, y: yi, a, d };
-    }
-    return null;
-}
+import { useEffect, useRef, useCallback } from "react";
+import { computeGeometry, drawRays, drawObjects } from "./boardUtils";
 
 export default function Board({
     canvasRef,
@@ -57,277 +15,105 @@ export default function Board({
     onMouseUp,
     onWheel
 }) {
+    const innerRef = useRef(null);
+    const canvasWrapperRef = useRef(null);
+    const gridAreaRef = useRef(null);
     const cols = config?.cols || 8;
     const rows = config?.rows || 6;
 
-    const mirrorsize = 0.5; // 50% of a grid square
-    const trianglediameter = (Math.sqrt(3) / 2.5) * mirrorsize;
-    const squarediameter = (Math.sqrt(2 * Math.pow(mirrorsize, 2))) / 2;
-
-    const computeGeometry = (width, height, objs) => {
-        let geometry = objs.map(obj => ({ ...obj, points: [], lines: [] }));
-
-        geometry.forEach((obj) => {
-            let x1, y1, x2, y2, x3, y3, x4, y4, d, a, r;
-            if (obj.type === 'triangle' || obj.type === 'laser') {
-                x1 = obj.x + trianglediameter * Math.sin(obj.a * Math.PI / 180);
-                y1 = obj.y + trianglediameter * Math.cos(obj.a * Math.PI / 180);
-                x2 = obj.x + trianglediameter * Math.sin((obj.a + 120) * Math.PI / 180);
-                y2 = obj.y + trianglediameter * Math.cos((obj.a + 120) * Math.PI / 180);
-                x3 = obj.x + trianglediameter * Math.sin((obj.a + 240) * Math.PI / 180);
-                y3 = obj.y + trianglediameter * Math.cos((obj.a + 240) * Math.PI / 180);
-                obj.points = [{ x: x1, y: y1 }, { x: x2, y: y2 }, { x: x3, y: y3 }];
-                obj.lines = [
-                    { x1, y1, x2, y2, type: obj.type },
-                    { x1: x2, y1: y2, x2: x3, y2: y3, type: obj.type },
-                    { x1: x3, y1: y3, x2: x1, y2: y1, type: obj.type }
-                ];
-            } else if (obj.type === 'square') {
-                x1 = obj.x + squarediameter * Math.sin(obj.a * Math.PI / 180);
-                y1 = obj.y + squarediameter * Math.cos(obj.a * Math.PI / 180);
-                x2 = obj.x + squarediameter * Math.sin((obj.a + 90) * Math.PI / 180);
-                y2 = obj.y + squarediameter * Math.cos((obj.a + 90) * Math.PI / 180);
-                x3 = obj.x + squarediameter * Math.sin((obj.a + 180) * Math.PI / 180);
-                y3 = obj.y + squarediameter * Math.cos((obj.a + 180) * Math.PI / 180);
-                x4 = obj.x + squarediameter * Math.sin((obj.a + 270) * Math.PI / 180);
-                y4 = obj.y + squarediameter * Math.cos((obj.a + 270) * Math.PI / 180);
-                obj.points = [{ x: x1, y: y1 }, { x: x2, y: y2 }, { x: x3, y: y3 }, { x: x4, y: y4 }];
-                obj.lines = [
-                    { x1, y1, x2, y2, type: obj.type }, { x1: x2, y1: y2, x2: x3, y2: y3, type: obj.type },
-                    { x1: x3, y1: y3, x2: x4, y2: y4, type: obj.type }, { x1: x4, y1: y4, x2: x1, y2: y1, type: obj.type }
-                ];
-            } else if (obj.type === 'block') {
-                d = Math.hypot(obj.w, obj.h) / 2;
-                a = Math.atan(obj.w / obj.h);
-                r = obj.a * Math.PI / 180;
-                x1 = obj.x + d * Math.sin(a + r); y1 = obj.y + d * Math.cos(a + r);
-                x2 = obj.x + d * Math.sin(Math.PI - a + r); y2 = obj.y + d * Math.cos(Math.PI - a + r);
-                x3 = obj.x + d * Math.sin(Math.PI + a + r); y3 = obj.y + d * Math.cos(Math.PI + a + r);
-                x4 = obj.x + d * Math.sin(-a + r); y4 = obj.y + d * Math.cos(-a + r);
-                obj.points = [{ x: x1, y: y1 }, { x: x2, y: y2 }, { x: x3, y: y3 }, { x: x4, y: y4 }];
-                obj.lines = [
-                    { x1, y1, x2, y2, type: obj.type }, { x1: x2, y1: y2, x2: x3, y2: y3, type: obj.type },
-                    { x1: x3, y1: y3, x2: x4, y2: y4, type: obj.type }, { x1: x4, y1: y4, x2: x1, y2: y1, type: obj.type }
-                ];
-            } else if (obj.type === 'sink') {
-                let radius = trianglediameter * 1.1;
-                for (let k = 0; k < 256; k++) {
-                    let angle = obj.a * Math.PI / 180 + k * (Math.PI / 128);
-                    let px = obj.x + radius * Math.sin(angle);
-                    let py = obj.y + radius * Math.cos(angle);
-                    obj.points.push({ x: px, y: py });
-                }
-                for (let k = 0; k < 256; k++) {
-                    let nextK = (k + 1) % 256;
-                    obj.lines.push({
-                        x1: obj.points[k].x, y1: obj.points[k].y,
-                        x2: obj.points[nextK].x, y2: obj.points[nextK].y,
-                        type: obj.type
-                    });
-                }
-            }
-        });
-        return geometry;
-    };
-
-    const draw = () => {
+    const draw = useCallback(() => {
         const canvas = canvasRef.current;
-        if (!canvas) return;
+        if (!canvas || !gridAreaRef.current || !canvasWrapperRef.current) return;
         const width = canvas.width;
         const height = canvas.height;
         const ctx = canvas.getContext("2d");
 
         ctx.clearRect(0, 0, width, height);
 
-        const scaleX = width / cols;
-        const scaleY = height / rows;
+        const containerRect = canvasWrapperRef.current.getBoundingClientRect();
+        const innerRect = gridAreaRef.current.getBoundingClientRect();
 
-        // Draw background grid
-        ctx.beginPath();
-        const gridSizeX = width / cols;
-        const gridSizeY = height / rows;
+        const scaleCSS_X = width / containerRect.width;
+        const scaleCSS_Y = height / containerRect.height;
 
-        for (let x = 0; x <= width; x += gridSizeX) {
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
-        }
-        for (let y = 0; y <= height; y += gridSizeY) {
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
-        }
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        const offsetX = (innerRect.left - containerRect.left) * scaleCSS_X;
+        const offsetY = (innerRect.top - containerRect.top) * scaleCSS_Y;
+        const innerWidth = innerRect.width * scaleCSS_X;
+        const innerHeight = innerRect.height * scaleCSS_Y;
 
-        if (draggedIdx !== null && objects[draggedIdx]) {
-            const dragObj = objects[draggedIdx];
-            const cellX = Math.floor(dragObj.x);
-            const cellY = Math.floor(dragObj.y);
+        const scaleX = innerWidth / cols;
+        const scaleY = innerHeight / rows;
 
-            ctx.fillStyle = "rgba(255, 255, 255, 0.1)"; /* leve fondo iluminado */
-            ctx.fillRect(cellX * gridSizeX, cellY * gridSizeY, gridSizeX, gridSizeY);
+        ctx.save();
+        ctx.translate(offsetX, offsetY);
 
-            ctx.strokeStyle = "#7dcfff"; /* Azul cián brillante de selección */
-            ctx.lineWidth = 2;
-            ctx.strokeRect(cellX * gridSizeX, cellY * gridSizeY, gridSizeX, gridSizeY);
-        }
-
-        const geoObjects = computeGeometry(width, height, objects);
-
-        // Draw objects
-        geoObjects.forEach((obj) => {
+        if (config.showGrid) {
             ctx.beginPath();
-            obj.points.forEach((p, idx) => {
-                if (idx === 0) ctx.moveTo(p.x * scaleX, p.y * scaleY);
-                else ctx.lineTo(p.x * scaleX, p.y * scaleY);
-            });
-            ctx.closePath();
+            const gridSizeX = innerWidth / cols;
+            const gridSizeY = innerHeight / rows;
 
-            ctx.setLineDash([]);
-            if (obj.type === "triangle" || obj.type === "square") {
-                ctx.fillStyle = "#1a1b26";
-                ctx.strokeStyle = obj.color || "#7dcfff";
-                ctx.lineWidth = 2;
-                ctx.fill();
-                ctx.stroke();
-            } else if (obj.type === "block") {
-                ctx.fillStyle = obj.color || "#333";
-                ctx.strokeStyle = "#555";
-                ctx.fill();
-                ctx.stroke();
-            } else if (obj.type === "sink") {
-                ctx.fillStyle = "#24283b";
-                ctx.strokeStyle = obj.color || "#9ece6a";
-                ctx.lineWidth = 3;
-                ctx.fill();
-                ctx.stroke();
-            } else if (obj.type === "laser") {
-                ctx.fillStyle = "#333";
-                ctx.strokeStyle = obj.color || "#ff0055";
-                ctx.lineWidth = 2;
-                ctx.fill();
-                ctx.stroke();
+            for (let x = 0; x <= innerWidth; x += gridSizeX) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, innerHeight);
             }
-
-            // Draw Label
-            if (obj.label) {
-                ctx.save();
-                ctx.translate(obj.x * scaleX, obj.y * scaleY);
-
-                // Maximum available width inside a tile (approx 70% of cell)
-                const maxAvailableWidth = Math.min(scaleX, scaleY) * 0.7;
-
-                // Start with a large relative font height
-                let fontSize = Math.min(scaleX, scaleY) * 0.3;
-                ctx.font = `bold ${fontSize}px sans-serif`;
-
-                // Measure how wide it is
-                let textWidth = ctx.measureText(obj.label).width;
-
-                // Shrink fontSize linearly based on proportion if it overflows the maxAvailableWidth
-                if (textWidth > maxAvailableWidth) {
-                    const ratio = maxAvailableWidth / textWidth;
-                    fontSize = fontSize * ratio;
-                    ctx.font = `bold ${fontSize}px sans-serif`;
-                }
-
-                ctx.fillStyle = obj.color || "#ffffff";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(obj.label, 0, 0);
-
-                ctx.restore();
+            for (let y = 0; y <= innerHeight; y += gridSizeY) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(innerWidth, y);
             }
-        });
-
-        // Compute and Draw Rays
-        let sinkHits = 0;
-        let totalSinks = geoObjects.filter(o => o.type === 'sink').length;
-        let currentLaserPath = [];
-
-        ctx.lineWidth = 2;
-        geoObjects.filter(o => o.type === 'laser').forEach(laserSrc => {
-            let lasera = laserSrc.a * Math.PI / 180;
-            let x1 = laserSrc.points[0].x;
-            let y1 = laserSrc.points[0].y;
-            let ray = { x1, y1, a: lasera, x2: x1 + 100 * Math.sin(lasera), y2: y1 + 100 * Math.cos(lasera) };
-
-            ctx.beginPath();
-            ctx.moveTo(x1 * scaleX, y1 * scaleY);
-
-            let bounce = 0;
-            let terminated = false;
-            let curSinked = false;
-            let lasthit = null;
-
-            while (!terminated && bounce < 50) {
-                let earliestHit = null;
-                let newLasthit = null;
-
-                geoObjects.forEach((obj, iIdx) => {
-                    if (obj === laserSrc) return; // Un laser no choca consigo mismo
-
-                    obj.lines.forEach((line, jIdx) => {
-                        if (lasthit === null || lasthit.objIdx !== iIdx || lasthit.lineIdx !== jIdx) {
-                            let intersection = getIntersection(ray, line);
-                            if (intersection && intersection.d > 0.001) {
-                                if (earliestHit === null || intersection.d < earliestHit.d) {
-                                    earliestHit = intersection;
-                                    newLasthit = { objIdx: iIdx, lineIdx: jIdx, type: line.type };
-                                }
-                            }
-                        }
-                    });
-                });
-
-                if (earliestHit === null) {
-                    terminated = true;
-                    ctx.lineTo(ray.x2 * scaleX, ray.y2 * scaleY);
-                } else {
-                    ctx.lineTo(earliestHit.x * scaleX, earliestHit.y * scaleY);
-
-                    if (lasthit === null || lasthit.objIdx !== newLasthit.objIdx) {
-                        const hitObj = geoObjects[newLasthit.objIdx];
-                        if (hitObj && hitObj.label && hitObj.type !== 'laser' && hitObj.type !== 'sink') {
-                            currentLaserPath.push(`${hitObj.label},${Math.floor(hitObj.x)},${Math.floor(hitObj.y)}`);
-                        }
-                    }
-
-                    if (newLasthit.type === 'block' || newLasthit.type === 'sink' || newLasthit.type === 'laser') {
-                        terminated = true;
-                        if (newLasthit.type === 'sink') {
-                            curSinked = true;
-                            sinkHits++;
-                        }
-                    } else {
-                        // Reflect
-                        let a = ray.a + Math.PI * (earliestHit.a / (Math.PI / 2));
-                        ray = {
-                            x1: earliestHit.x, y1: earliestHit.y, a,
-                            x2: earliestHit.x + 100 * Math.sin(a),
-                            y2: earliestHit.y + 100 * Math.cos(a)
-                        };
-                    }
-                }
-                bounce++;
-                lasthit = newLasthit;
-            }
-            setLaserIsSinked(curSinked);
-
-            // Laser color
-            ctx.strokeStyle = solved ? "#9ece6a" : curSinked ? "yellow" : "#ff0055";
-
-            ctx.setLineDash([]);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.lineWidth = 1;
             ctx.stroke();
+
+            if (draggedIdx !== null && objects[draggedIdx]) {
+                const dragObj = objects[draggedIdx];
+                const cellX = Math.floor(dragObj.x);
+                const cellY = Math.floor(dragObj.y);
+
+                ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+                ctx.fillRect(cellX * gridSizeX, cellY * gridSizeY, gridSizeX, gridSizeY);
+
+                ctx.strokeStyle = "#7dcfff";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(cellX * gridSizeX, cellY * gridSizeY, gridSizeX, gridSizeY);
+            }
+        }
+
+        const padLeftLogical = offsetX / scaleX;
+        const padTopLogical = offsetY / scaleY;
+        const padRightLogical = ((containerRect.right - innerRect.right) * scaleCSS_X) / scaleX;
+        const padBottomLogical = ((containerRect.bottom - innerRect.bottom) * scaleCSS_Y) / scaleY;
+
+        const shiftedObjects = objects.map(obj => {
+            if ((obj.type === 'laser' || obj.type === 'sink') && obj.style === 'hole') {
+                let nx = obj.x;
+                let ny = obj.y;
+                if (obj.a === 90) nx -= padLeftLogical;
+                if (obj.a === 270) nx += padRightLogical;
+                if (obj.a === 180) ny += padBottomLogical;
+                if (obj.a === 0) ny -= padTopLogical;
+                return { ...obj, x: nx, y: ny };
+            }
+            return obj;
         });
 
-        laserPathRef.current = currentLaserPath;
-    };
+        const geoObjects = computeGeometry(innerWidth, innerHeight, shiftedObjects);
+
+        let shouldDrawRaysFirst = geoObjects.some(obj => obj.type === "laser" && obj.style === "hole");
+        if (shouldDrawRaysFirst) {
+            drawObjects(ctx, scaleX, scaleY, geoObjects, config, draw);
+            drawRays(ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSinked, laserPathRef);
+        } else {
+            drawRays(ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSinked, laserPathRef);
+            drawObjects(ctx, scaleX, scaleY, geoObjects, config, draw);
+        }
+
+        ctx.restore();
+    }, [canvasRef, cols, config, draggedIdx, objects, rows, setLaserIsSinked, laserPathRef, solved]);
 
     useEffect(() => {
         const resizeCanvas = () => {
-            if (canvasRef.current && containerRef.current) {
-                const rect = containerRef.current.getBoundingClientRect();
+            if (canvasRef.current && canvasWrapperRef.current) {
+                const rect = canvasWrapperRef.current.getBoundingClientRect();
                 canvasRef.current.width = rect.width;
                 canvasRef.current.height = rect.height;
                 draw();
@@ -336,23 +122,49 @@ export default function Board({
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
         return () => window.removeEventListener('resize', resizeCanvas);
-    }, [objects, solved, draggedIdx, cols, rows]);
+    }, [draw, canvasRef]);
 
     useEffect(() => {
         draw();
-    }, [objects, draggedIdx, solved]);
+    }, [draw]);
 
     return (
-        <div className="laser-board-canvas" ref={containerRef}>
-            <canvas
-                ref={canvasRef}
-                onMouseDown={onMouseDown}
-                onMouseMove={onMouseMove}
-                onMouseUp={onMouseUp}
-                onMouseLeave={onMouseUp}
-                onWheel={onWheel}
-                style={{ cursor: draggedIdx !== null ? 'grabbing' : 'grab' }}
-            />
+        <div className="laser-board-canvas" ref={containerRef} style={{
+            position: 'relative',
+            background: config?.gridBackgroundImg ? `url(${config.gridBackgroundImg}) no-repeat center center` : "transparent",
+            backgroundSize: config?.gridBackgroundImg ? '100% 100%' : 'auto',
+            boxSizing: 'border-box',
+            border: config?.gridBackgroundImg ? 'none' : undefined,
+            borderRadius: config?.gridBackgroundImg ? '0' : undefined,
+            boxShadow: config?.gridBackgroundImg ? 'none' : undefined
+        }}>
+            <div className="board-canvas-wrapper" ref={canvasWrapperRef} style={{
+                position: 'absolute',
+                top: config?.canvasPadding?.top || '0',
+                right: config?.canvasPadding?.right || '0',
+                bottom: config?.canvasPadding?.bottom || '0',
+                left: config?.canvasPadding?.left || '0'
+            }}>
+                <div className="board-inner-area" ref={innerRef} style={{
+                    position: 'absolute',
+                    top: config?.gridPadding?.top || '0',
+                    right: config?.gridPadding?.right || '0',
+                    bottom: config?.gridPadding?.bottom || '0',
+                    left: config?.gridPadding?.left || '0',
+                    pointerEvents: 'none', visibility: 'hidden'
+                }}>
+                    <div className="actual-grid-area" ref={gridAreaRef} style={{ width: '100%', height: '100%' }}></div>
+                </div>
+                <canvas
+                    ref={canvasRef}
+                    onMouseDown={onMouseDown}
+                    onMouseMove={onMouseMove}
+                    onMouseUp={onMouseUp}
+                    onMouseLeave={onMouseUp}
+                    onWheel={onWheel}
+                    style={{ cursor: draggedIdx !== null ? 'grabbing' : 'grab', display: 'block', position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                />
+            </div>
         </div>
     );
 }

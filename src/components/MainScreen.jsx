@@ -19,26 +19,53 @@ export default function MainScreen({ solvePuzzle, solved }) {
         const toGridY = (gy) => gy + 0.5;
 
         if (config.transmitter) {
+            let a = config.transmitter.angle || 0;
+            let style = config.transmitter.style || 'object';
+            let gx = toGridX(config.transmitter.x);
+            let gy = toGridY(config.transmitter.y);
+
+            // Si el modo es agujero, lo anclamos a la pared del final de su propia celda (borde)
+            if (style === 'hole') {
+                if (a === 0) gy -= 0.5;
+                if (a === 90) gx -= 0.5;
+                if (a === 180) gy += 0.5;
+                if (a === 270) gx += 0.5;
+            }
+
             objs.push({
                 type: 'laser',
-                x: toGridX(config.transmitter.x),
-                y: toGridY(config.transmitter.y),
-                a: config.transmitter.angle || 0,
+                x: gx,
+                y: gy,
+                a: a,
                 allowMove: config.transmitter.allowMove ?? false,
                 label: config.transmitter.label || '',
-                color: config.transmitter.color || null
+                color: config.transmitter.color || null,
+                style: style
             });
         }
 
         if (config.receptor) {
+            let a = config.receptor.angle || 0;
+            let style = config.receptor.style || 'object';
+            let gx = toGridX(config.receptor.x);
+            let gy = toGridY(config.receptor.y);
+
+            if (style === 'hole') {
+                if (a === 0) gy -= 0.5;
+                if (a === 90) gx -= 0.5;
+                if (a === 180) gy += 0.5;
+                if (a === 270) gx += 0.5;
+            }
+
             objs.push({
                 type: 'sink',
-                x: toGridX(config.receptor.x),
-                y: toGridY(config.receptor.y),
-                a: 0,
+                x: gx,
+                y: gy,
+                a: a,
                 allowMove: config.receptor.allowMove ?? false,
                 label: config.receptor.label || '',
-                color: config.receptor.color || null
+                color: config.receptor.color || null,
+                style: style
             });
         }
 
@@ -81,7 +108,8 @@ export default function MainScreen({ solvePuzzle, solved }) {
     const laserPathRef = useRef("");
 
     const getMousePos = (e) => {
-        const rect = canvasRef.current.getBoundingClientRect();
+        const innerEl = containerRef.current?.querySelector('.actual-grid-area');
+        const rect = innerEl ? innerEl.getBoundingClientRect() : canvasRef.current.getBoundingClientRect();
         return {
             x: ((e.clientX - rect.left) / rect.width) * cols,
             y: ((e.clientY - rect.top) / rect.height) * rows
@@ -129,22 +157,26 @@ export default function MainScreen({ solvePuzzle, solved }) {
         }, 50); // Retraso de 50ms para asegurar que React haya dibujado el último frame y actualizado el ref
     };
 
+    const rotateObject = (idx, direction = 1) => {
+        setObjects(prev => {
+            let newObjs = [...prev];
+            const objType = newObjs[idx].type;
+            let step = 90;
+            if (objType === 'square' || objType === 'laser') {
+                step = 45;
+            } else if (objType === 'triangle') {
+                step = 30;
+            }
+            newObjs[idx] = { ...newObjs[idx], a: (newObjs[idx].a + direction * step) % 360 };
+            return newObjs;
+        });
+    };
+
     const handleMouseUp = (e) => {
         if (draggedIdx !== null) {
             const dist = Math.hypot(e.clientX - dragStart.current.x, e.clientY - dragStart.current.y);
             if (dist < 1) { // Consider as a click instead of a drag
-                setObjects(prev => {
-                    let newObjs = [...prev];
-                    const objType = newObjs[draggedIdx].type;
-                    let step = 90;
-                    if (objType === 'square') {
-                        step = 45;
-                    } else if (objType === 'triangle' || objType === 'laser') {
-                        step = 30;
-                    }
-                    newObjs[draggedIdx] = { ...newObjs[draggedIdx], a: (newObjs[draggedIdx].a + step) % 360 };
-                    return newObjs;
-                });
+                rotateObject(draggedIdx, 1);
             }
             setDraggedIdx(null);
             sendLaserStatus();
@@ -165,19 +197,7 @@ export default function MainScreen({ solvePuzzle, solved }) {
             }
         });
         if (rotateIdx !== -1) {
-            setObjects(prev => {
-                let newObjs = [...prev];
-                const objType = newObjs[rotateIdx].type;
-                let step = 0;
-                if (objType === 'square') {
-                    step = 45;
-                } else if (objType === 'triangle' || objType === 'laser') {
-                    step = 30;
-                }
-
-                newObjs[rotateIdx] = { ...newObjs[rotateIdx], a: (newObjs[rotateIdx].a + Math.sign(e.deltaY) * step) % 360 };
-                return newObjs;
-            });
+            rotateObject(rotateIdx, Math.sign(e.deltaY));
         }
     };
 
