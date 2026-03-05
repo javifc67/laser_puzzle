@@ -4,7 +4,7 @@ export let ESCAPP_APP_SETTINGS = {
   //Settings that can be specified by the authors
   // backgroundImg: "https://ejemplo.com/fondo.jpg",
   showGrid: true,
-  skin: "WOOD",
+  skin: "METALLIC",
   cols: 6,
   rows: 6,
   allowRotate: true, //For all movable objects
