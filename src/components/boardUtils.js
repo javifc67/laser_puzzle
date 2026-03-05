@@ -380,8 +380,10 @@ export const drawObjects = (ctx, scaleX, scaleY, geoObjects, config, drawTrigger
                     ctx.save();
                     ctx.translate(obj.x * scaleX, obj.y * scaleY);
                     ctx.rotate((-obj.a + 90) * Math.PI / 180);
-                    const size = Math.min(scaleX, scaleY) * 0.7;
-                    ctx.drawImage(laserImg, -size / 2, -size / 2, size, size);
+                    const drawW = Math.min(scaleX, scaleY) * 0.7;
+                    const aspect = laserImg.naturalHeight / laserImg.naturalWidth;
+                    const drawH = drawW * aspect;
+                    ctx.drawImage(laserImg, -drawW / 1.5, -drawH / 2, drawW, drawH);
                     ctx.restore();
                 } else {
                     ctx.fillStyle = "#333";
