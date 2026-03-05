@@ -37,7 +37,7 @@ export const THEME_ASSETS = {
     gridBackgroundImg: "/images/grid_metallic.png",
     canvasPadding: { top: "8.5%", right: "8.5%", bottom: "8%", left: "8.3%" },
     gridPadding: { top: "4%", right: "4.5%", bottom: "5%", left: "4.8%" },
-    laserEmitterImg: "/images/laser_metallic.png",
+    laserEmitterImg: "/images/laser.png",
     holeImg: "/images/hole.svg",
     receptorHoleImg: "/images/hole-green.svg",
     obstacleImg: "/images/obstacle_metallic.png",
