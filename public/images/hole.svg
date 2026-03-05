@@ -1,41 +1,62 @@
 <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Wall gradient -->
-    <linearGradient id="wallDrop" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#000000" />
-      <stop offset="50%" stop-color="#141518" />
-      <stop offset="100%" stop-color="#2a2c33" />
+    <!-- Metallic frame gradient -->
+    <linearGradient id="metalFrame" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1e1f24" />
+      <stop offset="30%" stop-color="#3c3e44" />
+      <stop offset="70%" stop-color="#2c2e36" />
+      <stop offset="100%" stop-color="#141518" />
     </linearGradient>
-    <radialGradient id="laserGlow" cx="10%" cy="50%" r="80%">
-      <stop offset="0%" stop-color="#ff0077" stop-opacity="1" />
-      <stop offset="50%" stop-color="#ff0055" stop-opacity="0.8" />
-      <stop offset="100%" stop-color="#ff0055" stop-opacity="0" />
+
+    <!-- Bevel effect (inner shadow simulation) -->
+    <linearGradient id="innerBevel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#020202" />
+      <stop offset="30%" stop-color="#101114" />
+      <stop offset="100%" stop-color="#2a2c30" />
+    </linearGradient>
+
+    <radialGradient id="laserGlow" cx="20%" cy="50%" r="80%">
+      <stop offset="0%" stop-color="#ff1a4a" stop-opacity="1" />
+      <stop offset="20%" stop-color="#ff0033" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#cc0029" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#ff0000" stop-opacity="0" />
     </radialGradient>
-    <filter id="shadow">
-      <feDropShadow dx="5" dy="0" stdDeviation="5" flood-color="#000" flood-opacity="0.9"/>
+
+    <!-- Drop shadow -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="8" dy="0" stdDeviation="6" flood-color="#000" flood-opacity="0.8"/>
     </filter>
   </defs>
 
-  <!-- We translate to center vertically. The left edge is x=0 (the wall boundary) -->
   <g transform="translate(0, 100)">
-    <!-- Base plate that sticks out slightly from the wall edge (x=0) -->
-    <!-- The plate extends from 0 to 40 on X -->
-    <rect x="-10" y="-50" width="40" height="100" rx="6" fill="#1a1c23" filter="url(#shadow)"/>
-    <rect x="-5" y="-45" width="30" height="90" rx="4" fill="#2d2f36" />
+    <!-- Base plate extending left -->
+    <rect x="-10" y="-70" width="60" height="140" rx="6" fill="url(#metalFrame)" filter="url(#shadow)"/>
     
-    <!-- Outer rim of the hole -->
-    <ellipse cx="10" cy="0" rx="14" ry="34" fill="#000"/>
+    <!-- Outer metallic bevel line -->
+    <rect x="-5" y="-65" width="50" height="130" rx="4" fill="none" stroke="#5b5f68" stroke-width="1.5" opacity="0.8"/>
+    <rect x="-3" y="-63" width="46" height="126" rx="3" fill="none" stroke="#111" stroke-width="1.5" opacity="0.6"/>
     
-    <!-- Depth wall simulation -->
-    <path d="M 5 -32 C 18 -32, 18 32, 5 32 C -5 32, -5 -32, 5 -32" fill="url(#wallDrop)"/>
+    <!-- Dark housing inset -->
+    <ellipse cx="14" cy="0" rx="20" ry="46" fill="#15161a"/>
+    <ellipse cx="14" cy="0" rx="19" ry="45" fill="none" stroke="#000" stroke-width="2"/>
+    
+    <!-- Inner depth curve -->
+    <path d="M 6 -40 C 26 -40, 26 40, 6 40 C -10 40, -10 -40, 6 -40" fill="url(#innerBevel)"/>
+    
+    <!-- Deep hole darkness -->
+    <path d="M 0 -34 C 18 -34, 18 34, 0 34 C -10 34, -10 -34, 0 -34" fill="#050505"/>
     
     <!-- Glowing Laser inside -->
-    <ellipse cx="2" cy="0" rx="8" ry="24" fill="url(#laserGlow)"/>
+    <ellipse cx="8" cy="0" rx="12" ry="32" fill="url(#laserGlow)"/>
     
-    <!-- Screws -->
-    <circle cx="10" cy="-35" r="3" fill="#0a0a0c"/>
-    <circle cx="10" cy="35" r="3" fill="#0a0a0c"/>
-    <circle cx="20" cy="-35" r="2" fill="#444"/>
-    <circle cx="20" cy="35" r="2" fill="#444"/>
+    <!-- Hex Screws -->
+    <g transform="translate(25, -50) scale(0.6)">
+      <circle cx="0" cy="0" r="10" fill="#2d2f35" stroke="#111" stroke-width="2"/>
+      <polygon points="0,-5 4.33,-2.5 4.33,2.5 0,5 -4.33,2.5 -4.33,-2.5" fill="#0b0b0d"/>
+    </g>
+    <g transform="translate(25, 50) scale(0.6)">
+      <circle cx="0" cy="0" r="10" fill="#2d2f35" stroke="#111" stroke-width="2"/>
+      <polygon points="0,-5 4.33,-2.5 4.33,2.5 0,5 -4.33,2.5 -4.33,-2.5" fill="#0b0b0d"/>
+    </g>
   </g>
 </svg>

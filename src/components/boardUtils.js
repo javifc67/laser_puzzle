@@ -137,7 +137,7 @@ export const computeGeometry = (width, height, objs) => {
     return geometry;
 };
 
-export const drawRays = (ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSinked, laserPathRef) => {
+export const drawRays = (ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSinked, laserPathRef, winProgress = 1) => {
     let currentLaserPath = [];
     ctx.lineWidth = 3;
 
@@ -147,13 +147,11 @@ export const drawRays = (ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSink
         let y1 = laserSrc.y;
         let ray = { x1, y1, a: lasera, x2: x1 + 100 * Math.sin(lasera), y2: y1 + 100 * Math.cos(lasera) };
 
-        ctx.beginPath();
-        ctx.moveTo(x1 * scaleX, y1 * scaleY);
-
         let bounce = 0;
         let terminated = false;
         let curSinked = false;
         let lasthit = null;
+        let segments = [];
 
         while (!terminated && bounce < 50) {
             let earliestHit = null;
@@ -177,9 +175,9 @@ export const drawRays = (ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSink
 
             if (earliestHit === null) {
                 terminated = true;
-                ctx.lineTo(ray.x2 * scaleX, ray.y2 * scaleY);
+                segments.push({ x1: ray.x1, y1: ray.y1, x2: ray.x2, y2: ray.y2 });
             } else {
-                ctx.lineTo(earliestHit.x * scaleX, earliestHit.y * scaleY);
+                segments.push({ x1: ray.x1, y1: ray.y1, x2: earliestHit.x, y2: earliestHit.y });
 
                 if (lasthit === null || lasthit.objIdx !== newLasthit.objIdx) {
                     const hitObj = geoObjects[newLasthit.objIdx];
@@ -205,11 +203,62 @@ export const drawRays = (ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSink
             bounce++;
             lasthit = newLasthit;
         }
+
         setLaserIsSinked(curSinked);
+
+        if (solved && winProgress < 1) {
+            ctx.beginPath();
+            segments.forEach((seg, i) => {
+                if (i === 0) ctx.moveTo(seg.x1 * scaleX, seg.y1 * scaleY);
+                ctx.lineTo(seg.x2 * scaleX, seg.y2 * scaleY);
+            });
+            ctx.strokeStyle = "yellow";
+            ctx.setLineDash([]);
+            ctx.stroke();
+        }
+
+        let totalLen = segments.reduce((sum, seg) => sum + Math.hypot(seg.x2 - seg.x1, seg.y2 - seg.y1), 0);
+        let targetLen = totalLen * winProgress;
+
+        ctx.beginPath();
+        let currentLen = 0;
+        let tipX = x1, tipY = y1;
+
+        for (let i = 0; i < segments.length; i++) {
+            let seg = segments[i];
+            let segLen = Math.hypot(seg.x2 - seg.x1, seg.y2 - seg.y1);
+            if (i === 0) ctx.moveTo(seg.x1 * scaleX, seg.y1 * scaleY);
+
+            if (currentLen + segLen <= targetLen) {
+                ctx.lineTo(seg.x2 * scaleX, seg.y2 * scaleY);
+                currentLen += segLen;
+                tipX = seg.x2; tipY = seg.y2;
+            } else {
+                let ratio = (targetLen - currentLen) / segLen;
+                if (ratio > 0) {
+                    tipX = seg.x1 + (seg.x2 - seg.x1) * ratio;
+                    tipY = seg.y1 + (seg.y2 - seg.y1) * ratio;
+                    ctx.lineTo(tipX * scaleX, tipY * scaleY);
+                }
+                break;
+            }
+        }
 
         ctx.strokeStyle = solved ? "#9ece6a" : curSinked ? "yellow" : "#ff0055";
         ctx.setLineDash([]);
         ctx.stroke();
+
+        if (solved && winProgress < 1) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(tipX * scaleX, tipY * scaleY, 5, 0, Math.PI * 2);
+            ctx.fillStyle = "#ffffff";
+            ctx.shadowColor = "#9ece6a";
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.fill();
+            ctx.restore();
+        }
     });
 
     laserPathRef.current = currentLaserPath;

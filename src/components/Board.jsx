@@ -1,5 +1,6 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { computeGeometry, drawRays, drawObjects } from "./boardUtils";
+import useSound from "../hooks/useSound.js";
 
 export default function Board({
     canvasRef,
@@ -20,6 +21,38 @@ export default function Board({
     const gridAreaRef = useRef(null);
     const cols = config?.cols || 8;
     const rows = config?.rows || 6;
+
+    const winProgressRef = useRef(1);
+    const animFrameRef = useRef(null);
+
+    const { play: playWinSound } = useSound("/sounds/laserShoot.wav", { volume: 0.8 });
+
+    useEffect(() => {
+        if (solved) {
+            playWinSound();
+            winProgressRef.current = 0;
+            let lastTime = performance.now();
+            const animate = (time) => {
+                const dt = time - lastTime;
+                lastTime = time;
+                // Take ~1.5 seconds to fill the path
+                winProgressRef.current += dt / 1500;
+                if (winProgressRef.current >= 1) {
+                    winProgressRef.current = 1;
+                    draw();
+                } else {
+                    draw();
+                    animFrameRef.current = requestAnimationFrame(animate);
+                }
+            };
+            animFrameRef.current = requestAnimationFrame(animate);
+        } else {
+            winProgressRef.current = 1;
+        }
+        return () => {
+            if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+        };
+    }, [solved]);
 
     const draw = useCallback(() => {
         const canvas = canvasRef.current;
@@ -101,9 +134,9 @@ export default function Board({
         let shouldDrawRaysFirst = geoObjects.some(obj => obj.type === "laser" && obj.style === "hole");
         if (shouldDrawRaysFirst) {
             drawObjects(ctx, scaleX, scaleY, geoObjects, config, draw);
-            drawRays(ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSinked, laserPathRef);
+            drawRays(ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSinked, laserPathRef, winProgressRef.current);
         } else {
-            drawRays(ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSinked, laserPathRef);
+            drawRays(ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSinked, laserPathRef, winProgressRef.current);
             drawObjects(ctx, scaleX, scaleY, geoObjects, config, draw);
         }
 
@@ -129,7 +162,7 @@ export default function Board({
     }, [draw]);
 
     return (
-        <div className="laser-board-canvas" ref={containerRef} style={{
+        <div className={`laser-board-canvas ${solved ? 'solved' : ''}`} ref={containerRef} style={{
             position: 'relative',
             background: config?.gridBackgroundImg ? `url(${config.gridBackgroundImg}) no-repeat center center` : "transparent",
             backgroundSize: config?.gridBackgroundImg ? '100% 100%' : 'auto',
