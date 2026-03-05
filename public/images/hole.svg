@@ -50,13 +50,6 @@
     <ellipse cx="8" cy="0" rx="12" ry="32" fill="url(#laserGlow)"/>
     
     <!-- Hex Screws -->
-    <g transform="translate(25, -50) scale(0.6)">
-      <circle cx="0" cy="0" r="10" fill="#2d2f35" stroke="#111" stroke-width="2"/>
-      <polygon points="0,-5 4.33,-2.5 4.33,2.5 0,5 -4.33,2.5 -4.33,-2.5" fill="#0b0b0d"/>
-    </g>
-    <g transform="translate(25, 50) scale(0.6)">
-      <circle cx="0" cy="0" r="10" fill="#2d2f35" stroke="#111" stroke-width="2"/>
-      <polygon points="0,-5 4.33,-2.5 4.33,2.5 0,5 -4.33,2.5 -4.33,-2.5" fill="#0b0b0d"/>
-    </g>
+
   </g>
 </svg>
