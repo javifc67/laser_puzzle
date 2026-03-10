@@ -1,7 +1,7 @@
-export const between = (x, a, b) => x >= Math.min(a, b) && x <= Math.max(a, b);
-export const round = (x) => Math.round(100000000 * x) / 100000000.0;
+const between = (x, a, b) => x >= Math.min(a, b) && x <= Math.max(a, b);
+const round = (x) => Math.round(100000000 * x) / 100000000.0;
 
-export function getIntersection(l1, l2) {
+const getIntersection = (l1, l2) => {
     let m1, m2, b1, b2, xi, yi, a, d;
 
     if (round(l1.x2) === round(l1.x1)) { m1 = NaN; b1 = l1.x1; }
@@ -41,7 +41,7 @@ export function getIntersection(l1, l2) {
 }
 
 const ImageCache = {};
-export const getCachedImage = (src, onLoad) => {
+const getCachedImage = (src, onLoad) => {
     if (!src) return null;
     if (!ImageCache[src]) {
         const img = new Image();
@@ -52,9 +52,18 @@ export const getCachedImage = (src, onLoad) => {
     return ImageCache[src];
 };
 
-export const mirrorsize = 0.6;
-export const trianglediameter = (Math.sqrt(3) / 2.5) * mirrorsize;
-export const squarediameter = (Math.sqrt(2 * Math.pow(mirrorsize, 2))) / 2;
+const getObjectSolution = (obj) => {
+    const fx = Math.floor(obj.x), fy = Math.floor(obj.y);
+    if (obj.label) return `${obj.label},${fx},${fy}`;
+    if (obj.img) return `${obj.img},${fx},${fy}`;
+    if (obj.ico) return `${obj.colorIco ? obj.colorIco + " " : ""}${obj.ico},${fx},${fy}`;
+    if (obj.color) return `${obj.color},${fx},${fy}`;
+    return `${fx}${fy},${fx},${fy}`;
+};
+
+const mirrorsize = 0.6;
+const trianglediameter = (Math.sqrt(3) / 2.5) * mirrorsize;
+const squarediameter = (Math.sqrt(2 * Math.pow(mirrorsize, 2))) / 2;
 
 export const computeGeometry = (width, height, objs) => {
     let geometry = objs.map(obj => ({ ...obj, points: [], lines: [] }));
@@ -181,8 +190,8 @@ export const drawRays = (ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSink
 
                 if (lasthit === null || lasthit.objIdx !== newLasthit.objIdx) {
                     const hitObj = geoObjects[newLasthit.objIdx];
-                    if (hitObj && hitObj.label && hitObj.type !== 'laser' && hitObj.type !== 'sink') {
-                        currentLaserPath.push(`${hitObj.label},${Math.floor(hitObj.x)},${Math.floor(hitObj.y)}`);
+                    if (hitObj && hitObj.type !== 'laser' && hitObj.type !== 'sink') {
+                        currentLaserPath.push(getObjectSolution(hitObj));
                     }
                 }
 
