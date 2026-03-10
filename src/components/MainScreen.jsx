@@ -78,7 +78,9 @@ export default function MainScreen({ solvePuzzle, solved }) {
                     a: obj.angle || 0,
                     allowMove: obj.allowMove ?? config.allowMoveObjects ?? true,
                     label: obj.label || '',
-                    color: obj.color || null
+                    color: obj.color || null,
+                    ico: obj.ico || null,
+                    img: obj.img || null
                 });
             });
         }
@@ -94,7 +96,9 @@ export default function MainScreen({ solvePuzzle, solved }) {
                     h: 0.8,
                     allowMove: obs.allowMove ?? config.allowMoveObstacles ?? false,
                     label: obs.label || '',
-                    color: obs.color || null
+                    color: obs.color || null,
+                    ico: obs.ico || null,
+                    img: obs.img || null
                 });
             });
         }

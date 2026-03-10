@@ -1,3 +1,6 @@
+import ReactDOMServer from "react-dom/server";
+import { iconMap } from "../icons/shapesIcons";
+
 const between = (x, a, b) => x >= Math.min(a, b) && x <= Math.max(a, b);
 const round = (x) => Math.round(100000000 * x) / 100000000.0;
 
@@ -56,12 +59,78 @@ const getObjectSolution = (obj) => {
     const fx = Math.floor(obj.x), fy = Math.floor(obj.y);
     if (obj.label) return `${obj.label},${fx},${fy}`;
     if (obj.img) return `${obj.img},${fx},${fy}`;
-    if (obj.ico) return `${obj.colorIco ? obj.colorIco + " " : ""}${obj.ico},${fx},${fy}`;
+    if (obj.ico) return `${obj.color ? obj.color + " " : ""}${obj.ico},${fx},${fy}`;
     if (obj.color) return `${obj.color},${fx},${fy}`;
     return `${fx}${fy},${fx},${fy}`;
 };
 
-const mirrorsize = 0.6;
+const IconImageCache = {};
+
+const toPascalCase = (str) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
+const getIconImage = (ico, color, onLoad) => {
+    const normalizedIco = toPascalCase(ico);
+    const key = `${normalizedIco}__${color}`;
+    if (IconImageCache[key]) return IconImageCache[key];
+    if (!iconMap[normalizedIco]) return null;
+
+    const svgString = ReactDOMServer.renderToString(iconMap[normalizedIco]({ width: 64, height: 64, color }));
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+        URL.revokeObjectURL(url);
+        if (onLoad) onLoad();
+    };
+    img.src = url;
+    IconImageCache[key] = img;
+    return img;
+};
+
+const drawLabel = (ctx, scaleX, scaleY, obj, drawTrigger) => {
+    if (!obj.img && !obj.ico && !obj.label) return;
+
+    const cellSize = Math.min(scaleX, scaleY);
+
+    ctx.save();
+    ctx.translate(obj.x * scaleX, obj.y * scaleY);
+
+    if (obj.img) {
+        const img = getCachedImage(obj.img, drawTrigger);
+        if (img && img.complete && img.naturalWidth > 0) {
+            ctx.rotate(-obj.a * Math.PI / 180);
+            const size = cellSize * 0.5;
+            ctx.drawImage(img, -size / 2, -size / 2, size, size);
+        }
+    } else if (obj.ico) {
+        const color = obj.color || "#ffffff";
+        const img = getIconImage(obj.ico, color, drawTrigger);
+        if (img && img.complete && img.naturalWidth > 0) {
+            const iconSize = cellSize * 0.55;
+            ctx.drawImage(img, -iconSize / 2, -iconSize / 2, iconSize, iconSize);
+        }
+    } else if (obj.label) {
+        const maxAvailableWidth = cellSize * 0.7;
+        let fontSize = cellSize * 0.3;
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        let textWidth = ctx.measureText(obj.label).width;
+
+        if (textWidth > maxAvailableWidth) {
+            fontSize *= maxAvailableWidth / textWidth;
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            textWidth = ctx.measureText(obj.label).width;
+        }
+
+        ctx.fillStyle = obj.color || "#ffffff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(obj.label, 0, 0);
+    }
+
+    ctx.restore();
+};
+
+const mirrorsize = 0.65;
 const trianglediameter = (Math.sqrt(3) / 2.5) * mirrorsize;
 const squarediameter = (Math.sqrt(2 * Math.pow(mirrorsize, 2))) / 2;
 
@@ -284,10 +353,11 @@ export const drawObjects = (ctx, scaleX, scaleY, geoObjects, config, drawTrigger
 
         ctx.setLineDash([]);
         if (obj.type === "triangle" || obj.type === "square") {
-            const imgSrc = obj.type === "triangle" ? config?.triangleImg : config?.squareImg;
-            const img = imgSrc ? getCachedImage(imgSrc, drawTrigger) : null;
+            const skinImgSrc = obj.type === "triangle" ? config?.triangleImg : config?.squareImg;
+            const skinImg = skinImgSrc ? getCachedImage(skinImgSrc, drawTrigger) : null;
+            const activeImg = skinImg && skinImg.complete && skinImg.naturalWidth > 0 ? skinImg : null;
 
-            if (img && img.complete && img.naturalWidth > 0) {
+            if (activeImg) {
                 ctx.save();
                 ctx.translate(obj.x * scaleX, obj.y * scaleY);
                 ctx.scale(scaleX, scaleY);
@@ -295,20 +365,19 @@ export const drawObjects = (ctx, scaleX, scaleY, geoObjects, config, drawTrigger
                 if (obj.type === "square") {
                     const rotDegree = -obj.a;
                     ctx.rotate(rotDegree * Math.PI / 180);
-                    const logicalW = 0.43 * Math.sqrt(2);
+                    const logicalW = squarediameter * Math.sqrt(2);
                     const logicalH = logicalW;
-                    ctx.drawImage(img, -logicalW / 2, -logicalH / 2, logicalW, logicalH);
+                    ctx.drawImage(activeImg, -logicalW / 2, -logicalH / 2, logicalW, logicalH);
                 } else {
                     const rotDegree = -obj.a;
                     ctx.rotate(rotDegree * Math.PI / 180);
                     const logicalW = trianglediameter * Math.sqrt(3);
                     const logicalH = trianglediameter * 1.5;
-                    ctx.drawImage(img, -logicalW / 2, -logicalH * (2 / 3), logicalW, logicalH);
+                    ctx.drawImage(activeImg, -logicalW / 2, -logicalH * (2 / 3), logicalW, logicalH);
                 }
                 ctx.restore();
             } else {
                 ctx.fillStyle = "#1a1b26";
-                // Pintar el armazón de madera genérico
                 ctx.strokeStyle = "#555";
                 ctx.lineWidth = 2;
                 ctx.fill();
@@ -328,6 +397,7 @@ export const drawObjects = (ctx, scaleX, scaleY, geoObjects, config, drawTrigger
                 ctx.lineWidth = 5;
                 ctx.stroke();
             }
+
         } else if (obj.type === "block") {
             const imgSrc = config?.obstacleImg;
             const img = imgSrc ? getCachedImage(imgSrc, drawTrigger) : null;
@@ -404,25 +474,6 @@ export const drawObjects = (ctx, scaleX, scaleY, geoObjects, config, drawTrigger
             }
         }
 
-        if (obj.label) {
-            ctx.save();
-            ctx.translate(obj.x * scaleX, obj.y * scaleY);
-            const maxAvailableWidth = Math.min(scaleX, scaleY) * 0.7;
-            let fontSize = Math.min(scaleX, scaleY) * 0.3;
-            ctx.font = `bold ${fontSize}px sans-serif`;
-            let textWidth = ctx.measureText(obj.label).width;
-
-            if (textWidth > maxAvailableWidth) {
-                const ratio = maxAvailableWidth / textWidth;
-                fontSize = fontSize * ratio;
-                ctx.font = `bold ${fontSize}px sans-serif`;
-            }
-
-            ctx.fillStyle = obj.color || "#ffffff";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(obj.label, 0, 0);
-            ctx.restore();
-        }
+        drawLabel(ctx, scaleX, scaleY, obj, drawTrigger);
     });
 };

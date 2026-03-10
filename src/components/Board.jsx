@@ -35,8 +35,7 @@ export default function Board({
             const animate = (time) => {
                 const dt = time - lastTime;
                 lastTime = time;
-                // Take ~1.5 seconds to fill the path
-                winProgressRef.current += dt / 1500;
+                winProgressRef.current += dt / 1000;
                 if (winProgressRef.current >= 1) {
                     winProgressRef.current = 1;
                     draw();
