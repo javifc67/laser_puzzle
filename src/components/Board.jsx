@@ -130,15 +130,12 @@ export default function Board({
         });
 
         const geoObjects = computeGeometry(innerWidth, innerHeight, shiftedObjects);
+        const laserObjectEmitter = geoObjects.filter(obj => obj.type === "laser" && obj.style !== "hole");
+        const everythingElse = geoObjects.filter(obj => !(obj.type === "laser" && obj.style !== "hole"));
 
-        let shouldDrawRaysFirst = geoObjects.some(obj => obj.type === "laser" && obj.style === "hole");
-        if (shouldDrawRaysFirst) {
-            drawObjects(ctx, scaleX, scaleY, geoObjects, config, draw);
-            drawRays(ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSinked, laserPathRef, winProgressRef.current);
-        } else {
-            drawRays(ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSinked, laserPathRef, winProgressRef.current);
-            drawObjects(ctx, scaleX, scaleY, geoObjects, config, draw);
-        }
+        drawObjects(ctx, scaleX, scaleY, everythingElse, config, draw);
+        drawRays(ctx, scaleX, scaleY, geoObjects, solved, setLaserIsSinked, laserPathRef, winProgressRef.current);
+        drawObjects(ctx, scaleX, scaleY, laserObjectEmitter, config, draw);
 
         ctx.restore();
     }, [canvasRef, cols, config, draggedIdx, objects, rows, setLaserIsSinked, laserPathRef, solved]);
