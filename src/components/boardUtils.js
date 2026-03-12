@@ -95,7 +95,7 @@ const drawLabel = (ctx, scaleX, scaleY, obj, drawTrigger) => {
     ctx.save();
     ctx.translate(obj.x * scaleX, obj.y * scaleY);
 
-    if (obj.img) {
+    if (obj.img && obj.type !== 'laser' && obj.type !== 'sink') {
         const img = getCachedImage(obj.img, drawTrigger);
         if (img && img.complete && img.naturalWidth > 0) {
             ctx.rotate(-obj.a * Math.PI / 180);
@@ -420,7 +420,7 @@ export const drawObjects = (ctx, scaleX, scaleY, geoObjects, config, drawTrigger
             }
         } else if (obj.type === "sink") {
             if (obj.style === "hole") {
-                const holeImgSrc = config?.receptorHoleImg || "/images/hole-green.svg";
+                const holeImgSrc = obj.img || config?.receptorHoleImg || "/images/hole-green.svg";
                 const holeImg = getCachedImage(holeImgSrc, drawTrigger);
                 if (holeImg && holeImg.complete && holeImg.naturalWidth > 0) {
                     ctx.save();
@@ -440,7 +440,7 @@ export const drawObjects = (ctx, scaleX, scaleY, geoObjects, config, drawTrigger
             }
         } else if (obj.type === "laser") {
             if (obj.style === "hole") {
-                const holeImgSrc = config?.holeImg || "/images/hole.svg";
+                const holeImgSrc = obj.img || config?.transmitterHoleImg || "/images/hole.svg";
                 const holeImg = getCachedImage(holeImgSrc, drawTrigger);
                 if (holeImg && holeImg.complete && holeImg.naturalWidth > 0) {
                     ctx.save();
@@ -452,7 +452,7 @@ export const drawObjects = (ctx, scaleX, scaleY, geoObjects, config, drawTrigger
                     ctx.restore();
                 }
             } else {
-                const laserImgSrc = config?.laserEmitterImg;
+                const laserImgSrc = obj.img || config?.transmitterObjectImg;
                 const laserImg = laserImgSrc ? getCachedImage(laserImgSrc, drawTrigger) : null;
 
                 if (laserImg && laserImg.complete && laserImg.naturalWidth > 0) {

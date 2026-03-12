@@ -120,13 +120,15 @@ export default function App() {
     let imagesToPreload = [_appSettings.backgroundMessage];
 
     const potentialImages = [
+      _appSettings.backgroundImg,
       _appSettings.gridBackgroundImg,
-      _appSettings.laserEmitterImg,
+      _appSettings.transmitter?.img || _appSettings.transmitterObjectImg,
+      _appSettings.transmitter?.img || _appSettings.transmitterHoleImg,
       _appSettings.holeImg,
       _appSettings.triangleImg,
       _appSettings.squareImg,
       _appSettings.obstacleImg,
-      _appSettings.receptorHoleImg
+      _appSettings.receptor?.img || _appSettings.receptorHoleImg
     ];
 
     potentialImages.forEach(img => {

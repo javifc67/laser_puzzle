@@ -40,7 +40,8 @@ export default function MainScreen({ solvePuzzle, solved }) {
                 allowMove: config.transmitter.allowMove ?? false,
                 label: config.transmitter.label || '',
                 color: config.transmitter.color || null,
-                style: style
+                style: style,
+                img: config.transmitter.img || null
             });
         }
 
@@ -65,7 +66,8 @@ export default function MainScreen({ solvePuzzle, solved }) {
                 allowMove: config.receptor.allowMove ?? false,
                 label: config.receptor.label || '',
                 color: config.receptor.color || null,
-                style: style
+                style: style,
+                img: config.receptor.img || null
             });
         }
 
